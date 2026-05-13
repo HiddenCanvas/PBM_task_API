@@ -26,44 +26,61 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchProducts() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
     try {
       final products = await _apiService.getProducts();
-      setState(() {
-        _products = products;
-      });
+      if (!mounted) return;
+      setState(() => _products = products);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error memuat produk: ${e.toString()}')),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _deleteProduct(int id) async {
+    // Konfirmasi sebelum hapus
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Produk'),
+        content: const Text('Yakin ingin menghapus produk ini?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     try {
       await _apiService.deleteProduct(id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Produk berhasil dihapus')),
-        );
-        _fetchProducts(); // Refresh list
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Produk berhasil dihapus'),
+          backgroundColor: Color(0xFF2D5A27),
+        ),
+      );
+      _fetchProducts(); // Refresh list
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menghapus produk: ${e.toString()}')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menghapus produk: ${e.toString()}')),
+      );
     }
   }
 
@@ -74,6 +91,16 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
+  }
+
+  Future<void> _goToAddProduct() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddProductScreen()),
+    );
+    if (result == true) {
+      _fetchProducts();
+    }
   }
 
   @override
@@ -109,39 +136,59 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF2D5A27)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF2D5A27)),
+            )
           : _products.isEmpty
-              ? Center(
-                  child: Text(
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 80,
+                    color: Colors.grey[300],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
                     'Tidak ada produk tersedia',
-                    style: GoogleFonts.inter(fontSize: 16, color: Colors.grey),
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _fetchProducts,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _products.length,
-                    itemBuilder: (context, index) {
-                      final product = _products[index];
-                      return ProductCard(
-                        product: product,
-                        onDelete: () => _deleteProduct(product.id),
-                      );
-                    },
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _fetchProducts,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2D5A27),
+                      foregroundColor: Colors.white,
+                    ),
                   ),
-                ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              color: const Color(0xFF2D5A27),
+              onRefresh: _fetchProducts,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _products.length,
+                itemBuilder: (context, index) {
+                  final product = _products[index];
+                  return ProductCard(
+                    product: product,
+                    onDelete: () => _deleteProduct(product.id),
+                  );
+                },
+              ),
+            ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF2D5A27),
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddProductScreen()),
-          );
-          if (result == true) {
-            _fetchProducts();
-          }
-        },
+        tooltip: 'Tambah Produk',
+        onPressed: _goToAddProduct,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );

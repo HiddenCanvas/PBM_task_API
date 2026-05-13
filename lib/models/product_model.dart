@@ -19,7 +19,7 @@ class ProductModel {
     return ProductModel(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       name: json['name'] ?? '',
-      price: int.tryParse(json['price']?.toString() ?? '') ?? 0,
+      price: (double.tryParse(json['price']?.toString() ?? '') ?? 0).toInt(),
       description: json['description'] ?? '',
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],

@@ -16,6 +16,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _apiService = ApiService();
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
   void _submit() async {
     final name = _nameController.text.trim();
     final priceStr = _priceController.text.trim();
@@ -36,27 +44,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       await _apiService.addProduct(name, price, description);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Produk berhasil ditambahkan')),
+        const SnackBar(
+          content: Text('Produk berhasil ditambahkan'),
+          backgroundColor: Color(0xFF2D5A27),
+        ),
       );
-      Navigator.pop(context, true); // Return true for refreshing the list
+      // Kirim true supaya HomeScreen tahu harus refresh
+      Navigator.pop(context, true);
     } catch (e) {
+      print('ERROR addProduct: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -91,8 +99,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: 'Nama Produk',
-                border: OutlineInputBorder(
+                prefixIcon: const Icon(Icons.shopping_bag_outlined),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF2D5A27), width: 2),
                 ),
               ),
             ),
@@ -102,8 +113,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 labelText: 'Harga (Rp)',
-                border: OutlineInputBorder(
+                prefixIcon: const Icon(Icons.attach_money),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF2D5A27), width: 2),
                 ),
               ),
             ),
@@ -113,8 +127,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
               maxLines: 4,
               decoration: InputDecoration(
                 labelText: 'Deskripsi Produk',
-                border: OutlineInputBorder(
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.only(bottom: 60),
+                  child: Icon(Icons.description_outlined),
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF2D5A27), width: 2),
                 ),
               ),
             ),
@@ -126,12 +146,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2D5A27),
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey[400],
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : Text(
                         'Simpan Produk',
                         style: GoogleFonts.inter(
